@@ -38,6 +38,7 @@ return {
 				svelte = true,
 				cssls = true,
 				tailwindcss = true,
+				phpactor = true,
 				-- Probably want to disable formatting for this lang server
 				tsserver = true,
 			}
