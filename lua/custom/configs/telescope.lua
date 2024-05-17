@@ -13,11 +13,10 @@ require("telescope").setup({
 		},
 	},
 })
-
 -- Enable Telescope extensions if they are installed
 pcall(require("telescope").load_extension, "fzf")
 pcall(require("telescope").load_extension, "ui-select")
-
+pcall(require("telescope").load_extension, "luasnip")
 -- See `:help telescope.builtin`
 local builtin = require("telescope.builtin")
 vim.keymap.set("n", "<leader>sh", builtin.help_tags, { desc = "[S]earch [H]elp" })
@@ -53,3 +52,7 @@ end, { desc = "[S]earch [/] in Open Files" })
 vim.keymap.set("n", "<leader>sn", function()
 	builtin.find_files({ cwd = vim.fn.stdpath("config") })
 end, { desc = "[S]earch [N]eovim files" })
+
+vim.keymap.set("n", "<leader>sl", function()
+	require("telescope").extensions.luasnip.luasnip()
+end, { desc = "[S]earch [L]uasnips" })
