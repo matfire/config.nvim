@@ -5,7 +5,7 @@ require("telescope").setup({
 		fzf = {},
 		wrap_results = true,
 		history = {
-			vim.fs.joinpath(data, "telescope_history.sqlite3"),
+			vim.fn.stdpath("data") .. "telescope_history.sqlite3",
 			limit = 100,
 		},
 		["ui-select"] = {
