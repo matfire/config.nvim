@@ -9,8 +9,8 @@ return {
 			},
 			{
 				"<leader>ts",
-				":FloatermNew spotify_player<CR>",
-				desc = "[Terminal] Spotify TUI",
+				":FloatermNew lazysql<CR>",
+				desc = "[Terminal] LazySql",
 			},
 		}
 		return _keys

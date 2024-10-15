@@ -39,8 +39,6 @@ return {
 				cssls = true,
 				tailwindcss = true,
 				phpactor = true,
-				-- Probably want to disable formatting for this lang server
-				tsserver = true,
 			}
 
 			local servers_to_install = vim.tbl_filter(function(key)
@@ -82,14 +80,20 @@ return {
 					local client = assert(vim.lsp.get_client_by_id(args.data.client_id), "must have valid client")
 
 					vim.opt_local.omnifunc = "v:lua.vim.lsp.omnifunc"
-					vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = 0 })
-					vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = 0 })
-					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, { buffer = 0 })
-					vim.keymap.set("n", "gT", vim.lsp.buf.type_definition, { buffer = 0 })
-					vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = 0 })
+					vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = 0, desc = "[G]oto definition" })
+					vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = 0, desc = "[G]oto reference" })
+					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, { buffer = 0, desc = "[G]oto declaration" })
+					vim.keymap.set(
+						"n",
+						"gT",
+						vim.lsp.buf.type_definition,
+						{ buffer = 0, desc = "[G]oto type definition" }
+					)
+					vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = 0, desc = "Hover definition" })
 
-					vim.keymap.set("n", "<space>cr", vim.lsp.buf.rename, { buffer = 0 })
-					vim.keymap.set("n", "<space>ca", vim.lsp.buf.code_action, { buffer = 0 })
+					vim.keymap.set("n", "<space>cr", vim.lsp.buf.rename, { buffer = 0, desc = "[C]ode rename" })
+					vim.keymap.set("n", "<space>ca", vim.lsp.buf.code_action, { buffer = 0, desc = "[C]ode action" })
+					vim.keymap.set("n", "<space>cf", vim.lsp.buf.format, { buffer = 0, desc = "[C]ode format" })
 
 					local filetype = vim.bo[bufnr].filetype
 					if disable_semantic_tokens[filetype] then
