@@ -39,6 +39,7 @@ return {
 				cssls = true,
 				tailwindcss = true,
 				phpactor = true,
+				ts_ls = true,
 			}
 
 			local servers_to_install = vim.tbl_filter(function(key)
@@ -69,7 +70,9 @@ return {
 
 				lspconfig[name].setup(config)
 			end
-
+			lspconfig["elixirls"].setup({
+				cmd = { "/Users/matteo/Dev/ls/elixir/language_server.sh" },
+			})
 			local disable_semantic_tokens = {
 				lua = true,
 			}
