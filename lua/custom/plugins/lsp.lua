@@ -40,6 +40,7 @@ return {
 				tailwindcss = true,
 				phpactor = true,
 				ts_ls = true,
+				templ = true,
 			}
 
 			local servers_to_install = vim.tbl_filter(function(key)
