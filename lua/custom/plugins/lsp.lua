@@ -16,94 +16,115 @@ return {
 			"b0o/SchemaStore.nvim",
 		},
 		config = function()
-			require("neodev").setup({
-				-- library = {
-				--   plugins = { "nvim-dap-ui" },
-				--   types = true,
-				-- },
+			vim.api.nvim_create_autocmd("LspAttach", {
+				group = vim.api.nvim_create_augroup("kickstart-lsp-attach", { clear = true }),
+				callback = function(event)
+					local map = function(keys, func, desc, mode)
+						mode = mode or "n"
+						vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = "LSP: " .. desc })
+					end
+
+					vim.opt_local.omnifunc = "v:lua.vim.lsp.omnifunc"
+					map("gd", require("telescope.builtin").lsp_definitions, "[G]oto [D]efinition")
+					map("gr", require("telescope.builtin").lsp_references, "[G]oto [R]eferences")
+					map("gI", require("telescope.builtin").lsp_implementations, "[G]oto [I]mplementation")
+					map("<leader>D", require("telescope.builtin").lsp_type_definitions, "Type [D]efinition")
+
+					vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = 0, desc = "Hover definition" })
+					map("<leader>cr", vim.lsp.buf.rename, "[C]ode rename")
+					map("<leader>ca", vim.lsp.buf.code_action, "[C]ode [A]ction", { "n", "x" })
+					vim.keymap.set("n", "<space>cf", vim.lsp.buf.format, { buffer = 0, desc = "[C]ode format" })
+
+					-- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
+					---@param client vim.lsp.Client
+					---@param method vim.lsp.protocol.Method
+					---@param bufnr? integer some lsp support methods only in specific files
+					---@return boolean
+					local function client_supports_method(client, method, bufnr)
+						if vim.fn.has("nvim-0.11") == 1 then
+							return client:supports_method(method, bufnr)
+						else
+							return client.supports_method(method, { bufnr = bufnr })
+						end
+					end
+					local client = vim.lsp.get_client_by_id(event.data.client_id)
+					if
+						client
+						and client_supports_method(
+							client,
+							vim.lsp.protocol.Methods.textDocument_documentHighlight,
+							event.buf
+						)
+					then
+						local highlight_augroup =
+							vim.api.nvim_create_augroup("kickstart-lsp-highlight", { clear = false })
+						vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+							buffer = event.buf,
+							group = highlight_augroup,
+							callback = vim.lsp.buf.document_highlight,
+						})
+
+						vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+							buffer = event.buf,
+							group = highlight_augroup,
+							callback = vim.lsp.buf.clear_references,
+						})
+
+						vim.api.nvim_create_autocmd("LspDetach", {
+							group = vim.api.nvim_create_augroup("kickstart-lsp-detach", { clear = true }),
+							callback = function(event2)
+								vim.lsp.buf.clear_references()
+								vim.api.nvim_clear_autocmds({ group = "kickstart-lsp-highlight", buffer = event2.buf })
+							end,
+						})
+					end
+				end,
 			})
-
-			local capabilities = nil
-			if pcall(require, "cmp_nvim_lsp") then
-				capabilities = require("cmp_nvim_lsp").default_capabilities()
-			end
-
+			local capabilities = vim.lsp.protocol.make_client_capabilities()
+			capabilities = vim.tbl_deep_extend("force", capabilities, require("cmp_nvim_lsp").default_capabilities())
 			local lspconfig = require("lspconfig")
 
 			local servers = {
-				bashls = true,
-				gopls = true,
-				lua_ls = true,
-				rust_analyzer = true,
-				svelte = true,
-				cssls = true,
-				tailwindcss = true,
-				phpactor = true,
-				ts_ls = true,
-				templ = true,
+				bashls = {},
+				gopls = {},
+				lua_ls = {},
+				rust_analyzer = {},
+				svelte = {},
+				cssls = {},
+				ts_ls = {},
 			}
 
-			local servers_to_install = vim.tbl_filter(function(key)
-				local t = servers[key]
-				if type(t) == "table" then
-					return not t.manual_install
-				else
-					return t
-				end
-			end, vim.tbl_keys(servers))
-
-			require("mason").setup()
-			local ensure_installed = {
-				"stylua",
-				"lua_ls",
-			}
-
-			vim.list_extend(ensure_installed, servers_to_install)
+			local ensure_installed = vim.tbl_keys(servers or {})
+			vim.list_extend(ensure_installed, {
+				stylua = {},
+			})
+			require("mason").setup({})
 			require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
-			for name, config in pairs(servers) do
-				if config == true then
-					config = {}
-				end
-				config = vim.tbl_deep_extend("force", {}, {
-					capabilities = capabilities,
-				}, config)
+			-- for name, config in pairs(servers) do
+			-- 	if config == true then
+			-- 		config = {}
+			-- 	end
+			-- 	config = vim.tbl_deep_extend("force", {}, {
+			-- 		capabilities = capabilities,
+			-- 	}, config)
+			--
+			-- 	lspconfig[name].setup(config)
+			-- end
+			require("mason-lspconfig").setup({
+				ensure_installed = {},
+				automatic_installation = false,
+				handlers = {
+					function(server_name)
+						local server = servers[server_name]
+						if server then
+							server.capabilities =
+								vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
 
-				lspconfig[name].setup(config)
-			end
-			lspconfig["elixirls"].setup({
-				cmd = { "/Users/matteo/Dev/ls/elixir/language_server.sh" },
-			})
-			local disable_semantic_tokens = {
-				lua = true,
-			}
-
-			vim.api.nvim_create_autocmd("LspAttach", {
-				callback = function(args)
-					local bufnr = args.buf
-					local client = assert(vim.lsp.get_client_by_id(args.data.client_id), "must have valid client")
-
-					vim.opt_local.omnifunc = "v:lua.vim.lsp.omnifunc"
-					vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = 0, desc = "[G]oto definition" })
-					vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = 0, desc = "[G]oto reference" })
-					vim.keymap.set("n", "gD", vim.lsp.buf.declaration, { buffer = 0, desc = "[G]oto declaration" })
-					vim.keymap.set(
-						"n",
-						"gT",
-						vim.lsp.buf.type_definition,
-						{ buffer = 0, desc = "[G]oto type definition" }
-					)
-					vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = 0, desc = "Hover definition" })
-
-					vim.keymap.set("n", "<space>cr", vim.lsp.buf.rename, { buffer = 0, desc = "[C]ode rename" })
-					vim.keymap.set("n", "<space>ca", vim.lsp.buf.code_action, { buffer = 0, desc = "[C]ode action" })
-					vim.keymap.set("n", "<space>cf", vim.lsp.buf.format, { buffer = 0, desc = "[C]ode format" })
-
-					local filetype = vim.bo[bufnr].filetype
-					if disable_semantic_tokens[filetype] then
-						client.server_capabilities.semanticTokensProvider = nil
-					end
-				end,
+							require("lspconfig")[server_name].setup(server)
+						end
+					end,
+				},
 			})
 
 			-- Autoformatting Setup
